@@ -1,9 +1,6 @@
-import re
 from board import Board
 import random
 import xml.etree.ElementTree as ET
-import time
-import tkinter
 from datetime import datetime
 
 path_piecesDescriptions = "piecesDescriptions.txt"
