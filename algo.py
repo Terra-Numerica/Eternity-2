@@ -188,7 +188,7 @@ class Algo:
         mydata = ET.tostring(root)
 
         if (len(self.path_save) == 0):
-            self.path_save = "save-" + datetime.now().strftime("%b-%d-%Y %H:%M:%S") + ".xml"
+            self.path_save = "Saved-Grids/save-" + datetime.now().strftime("%b-%d-%Y %H:%M:%S") + ".xml"
         myfile = open(self.path_save, "w")
         myfile.write(str(mydata).strip('b\'\''))
         
