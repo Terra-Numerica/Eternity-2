@@ -29,7 +29,7 @@ class GUI(tkinter.Tk):
         self.geometry(str(self.appWidth) + "x" + str(self.appHeight))
 
         # ----- #
-        # speed slider to pause beetween each loop
+        # speedslider to slow down the update of the gui
         self.speedSlider = Scale(self,
                                  from_=0.0,
                                  to=20.0,
@@ -59,6 +59,7 @@ class GUI(tkinter.Tk):
         
         self.recordBoard = BoardGUI(self, width=self.boardSize + 8, height=self.boardSize + 1)
         self.recordBoard.grid(row=3, column=2)
+        #CreateToolTip(self.recordBoard, text="This is showing")
 
         self.startButton = Button(self, text="Start", command=self.__startClick)
         self.startButton.grid(row=0, column=1)
@@ -78,6 +79,10 @@ class GUI(tkinter.Tk):
         self.timer = Label(self, text="Elapsed time: " + str(self.elapsedTime))
         self.timer.configure(bg="#e3d5ca", fg= "#000000")
         self.timer.grid(row=2, column=0)
+        
+        self.recordTimer = Label(self, text="Elapsed time since last solution: " + str(self.elapsedTime))
+        self.recordTimer.configure(bg="#e3d5ca", fg= "#000000")
+        self.recordTimer.grid(row = 2, column= 2)
 
         self.numberPieces = Label(self, text="Number of pieces: 0/256")
         self.numberPieces.configure(bg="#e3d5ca", fg= "#000000")
@@ -93,7 +98,23 @@ class GUI(tkinter.Tk):
         fileName = filedialog.askopenfilename()
         self.algo.initialize(fileName)
         
+        
+    def startRecordTimer(self):
+        now = datetime.now()
+        self.virtualStartDateForRecordTimer = now - timedelta()
+        self.updateRecordTimer()
+    
 
+    def updateRecordTimer(self):
+        
+        if self.timerIsRunning:
+            now = datetime.today()
+            #print((now - self.virtualStartDateForRecordTimer).total_seconds())
+            time = str(now - self.virtualStartDateForRecordTimer).split(".")[0]
+            #print(type(time))
+            self.recordTimer.configure(text="Elapsed time since last solution: "+time)
+            self.after(1000, self.updateRecordTimer)
+         
 
     def setPreviousElapsedTime(self, totalSeconds):
         self.elapsedTime = timedelta(seconds=int(totalSeconds))

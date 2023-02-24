@@ -20,6 +20,7 @@ class Algo:
         self.speedSlider = speedSLider;
         self.progressive = False
         self.nb_of_loop = 0
+        
         # init pieces
         file = open(path_piecesDescriptions, 'r')
         lines = file.readlines()
@@ -34,7 +35,11 @@ class Algo:
             id += 1
             self.listPieces.append(line.strip())
 
-        # shuffling pieces (fixed seed)
+        # shuffling pieces (random seed)
+        # we need to use version 2 of the Mersenne Twister algorithm
+        
+        # we also need to add a way to keep the best seed somewhere
+        # not implemented yet
         random.seed(seed, version=2)
         random.shuffle(self.listPieces)
 
@@ -52,8 +57,8 @@ class Algo:
         self.recordBoard = Board(self, self.recordBoardGUI)
 
     def initialize(self, fileName=None):
-        # loading save file
         if fileName:
+            # loading save file
             tree = ET.parse(fileName)
             root = tree.getroot()
             for elem in root.findall("boards"):
@@ -71,10 +76,9 @@ class Algo:
                 self.remainingPieces.remove(piece)
 
             self.gui.updateNumberOfPieces(self.maxNumCases)
-
-        # print("remainingPieces = "+str(len(self.remainingPieces)))
-        # print("used pieces = "+str(len(listPieces)))
+            
         else:
+            # initializing a fresh board
             self.numMoves = 0
             self.maxNumCases = 0
 
@@ -87,6 +91,7 @@ class Algo:
                 self.stack.append((p, r, 0))
 
     def constructStackFromString(self, string):
+        # reconstructing the stack from a string in the save file
         self.stack = []
         listStr = string.split(';')
         for elt in listStr:
@@ -95,13 +100,8 @@ class Algo:
                 (p, r, case) = (eltList[0], int(eltList[1]), int(eltList[2]))
                 self.stack.append((p, r, case))
 
-
     def runStack(self):
         """
-			a piece is represented as a String
-				Ex:
-					AQXX ->  Top : A ; Right : Q; Bottom : X; Left : X;
-  
 			stack stores the last piece found that we need to place. Namely it stores tuples containing:
 				- a piece
 				- a rotation
@@ -110,26 +110,25 @@ class Algo:
         self.stop = False
         print("starting algo")
         while not self.stop and len(self.stack) > 0:
-            """
-			if self.numMoves == 20:
-				self.save()
-				return
-			"""
 
-            # print("size of stack : "+str(len(self.stack)))
             self.numMoves += 1
+            # getting the last piece found that can be placed
             (piece, rotation, case) = self.stack.pop()
             
             for caseToRemove in range(self.lastPlacedPiece, case - 1, -1):
-                #print("removing case "+str(caseToRemove))
+                # this is the backtracking part
+                # removing all the pieces beetwen the last placed piece and the position of the new one
                 removedPiece = self.currentBoard.removePiece(caseToRemove)
                 self.remainingPieces.append(removedPiece)
 
-            #print("placing piece "+piece+" on case "+str(case))
+            # placing the piece on the board and updating the remaining pieces
+            # update the gui
             self.currentBoard.putPiece(case, piece, rotation)    
             self.remainingPieces.remove(piece)
             self.lastPlacedPiece = case
             if case > self.maxNumCases:
+                # we have a new record
+                self.gui.startRecordTimer();
                 self.gui.updateNumberOfPieces(case)
                 self.maxNumCases = case
                 self.recordBoard.updateEverything(self.currentBoard)
@@ -139,6 +138,7 @@ class Algo:
                 self.currentBoard.print()
                 return
             else:
+                # looking for the next piece and pushing them on the stack
                 case += 1
                 listMoves = self.lookForAvailablePieces(case)
                 for (p, r) in listMoves:
@@ -146,17 +146,16 @@ class Algo:
                     
                     
             if self.progressive:
+                # progressive mode
                 val = self.equalToOneEveryTenLoop()
                 self.speedSlider.set(self.speedSlider.get()-val)
-            #time.sleep(self.speedSlider.get()/1000)
+            
             if (self.speedSlider.get() > 0):
                 self.gui.after(self.speedSlider.get()*10, self.currBoardGUI.update())    
             
-            
-                 
-
     def save(self):
         # create the file structure
+        
         print("Saving...")
         root = ET.Element('root')
 
@@ -164,6 +163,7 @@ class Algo:
 
         currB = ET.SubElement(boards, "currentBoard")
         currB.text = self.currentBoard.toString()
+<<<<<<< Updated upstream
 
         recordB = ET.SubElement(boards, "recordBoard")
         recordB.text = self.recordBoard.toString()
@@ -191,13 +191,47 @@ class Algo:
             self.path_save = "save-" + datetime.now().strftime("%b-%d-%Y %H:%M:%S") + ".xml"
         myfile = open(self.path_save, "w")
         myfile.write(str(mydata).strip('b\'\''))
+=======
+>>>>>>> Stashed changes
         
-        print("Progression saved !")
+        if (len(currB.text) != 0):
+            recordB = ET.SubElement(boards, "recordBoard")
+            recordB.text = self.recordBoard.toString()
+
+            algo = ET.SubElement(root, "algo")
+
+            stack = ET.SubElement(algo, "stack")
+            stack.text = ';'.join([','.join([str(y) for y in x]) for x in self.stack])
+
+            stats = ET.SubElement(root, "stats")
+
+            saveMaxNumCases = ET.SubElement(stats, "maxNumCases")
+            saveMaxNumCases.text = str(self.maxNumCases)
+
+            saveLastPlacedPiece = ET.SubElement(stats, "lastPlacedPiece")
+            saveLastPlacedPiece.text = str(self.lastPlacedPiece)
+
+            time = ET.SubElement(stats, "time")
+            time.text = str(int(self.gui.elapsedTime.total_seconds()))
+
+            # create a new XML file with the results
+            mydata = ET.tostring(root)
+
+            if (len(self.path_save) == 0):
+                self.path_save = "Saved-Grids/save-" + datetime.now().strftime("%b-%d-%Y %H:%M:%S") + ".xml"
+            myfile = open(self.path_save, "w")
+            myfile.write(str(mydata).strip('b\'\''))
+            
+            print("Progression saved !")
+            return
+
+        print("Nothing to Save..")
 
     def stopAlgorithm(self):
         self.stop = True
 
     def lookForAvailablePieces(self, caseId):
+        # returns a list of tuples (piece, rotation) that can be placed on the given case
         (x, y) = self.getCoordinates(caseId)
         constraints = self.currentBoard.getConstraints(x, y)
         #print("constraints of case "+str(caseId)+" : "+constraints)
@@ -224,8 +258,7 @@ class Algo:
 	ex: "B**X" means there is a constraint for the top and the left edges only
 	"""
 
-    def match(self, piece, constraints):
-        
+    def match(self, piece, constraints):    
         for i in range(4):
             firsti = i
             j = 0
@@ -237,6 +270,7 @@ class Algo:
         return -1
 
     def getNumMoves(self):
+        # returns the number of moves made since the last call to this function
         saveNum = self.numMoves
         self.numMoves = 0
         return saveNum
@@ -245,6 +279,7 @@ class Algo:
         return (caseId // 16, caseId % 16)
     
     def equalToOneEveryTenLoop(self):
+        # to update the speed slider progressively
         self.nb_of_loop += 1
         val = 0 if self.nb_of_loop%10 != 0 else 1
         return val
